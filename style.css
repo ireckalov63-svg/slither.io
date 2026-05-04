@@ -1,0 +1,230 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: linear-gradient(135deg, #0a0f1e 0%, #0c1225 100%);
+  min-height: 100vh;
+  font-family: 'Segoe UI', 'Montserrat', system-ui, -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+/* центровка */
+.menu-screen,
+.skins-screen,
+.game-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* главное меню */
+.menu-screen {
+  gap: 20px;
+  background: rgba(20, 28, 48, 0.9);
+  backdrop-filter: blur(8px);
+  border-radius: 50px;
+  padding: 40px 35px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.menu-play,
+.menu-skins {
+  background: linear-gradient(135deg, #3a4f7c, #1e2a47);
+  border: none;
+  padding: 12px 28px;
+  font-size: clamp(18px, 5vw, 28px);
+  font-weight: 600;
+  font-family: inherit;
+  color: white;
+  border-radius: 40px;
+  cursor: pointer;
+  width: 200px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.menu-play:hover,
+.menu-skins:hover {
+  background: linear-gradient(135deg, #4a62a0, #2a3a60);
+}
+
+/*экран скинов*/
+.skins-screen {
+  gap: 20px;
+  background: rgba(20, 28, 48, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 50px;
+  padding: 35px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.skins-preview {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 40px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.skins-preview div:first-child {
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, #ffd966, #e6a017);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 50px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.skins-preview div:last-child {
+  font-size: clamp(14px, 4vw, 22px);
+  font-weight: bold;
+  color: #ffecb3;
+}
+
+.skins-arrow-left,
+.skins-arrow-right {
+  background: #1e2a47;
+  border: none;
+  font-size: 28px;
+  padding: 8px 18px;
+  font-weight: bold;
+  border-radius: 40px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.skins-arrow-left:hover,
+.skins-arrow-right:hover {
+  background: #2e3e66;
+}
+
+.skins-select {
+  background: linear-gradient(135deg, #3c6e47, #2a5238);
+  border: none;
+  padding: 10px 24px;
+  font-size: clamp(14px, 4vw, 20px);
+  font-weight: bold;
+  border-radius: 40px;
+  color: white;
+  cursor: pointer;
+  margin-top: 5px;
+  width: 150px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.skins-select:hover {
+  background: linear-gradient(135deg, #4d8a5c, #356d46);
+}
+
+/*игровое поле*/
+#game-canvas {
+  display: block;
+  width: min(80vh, 90vw);
+  height: min(80vh, 90vw);
+  max-width: 800px;
+  max-height: 800px;
+  background: radial-gradient(circle, #1c2a3a, #0a0f1a);
+  border-radius: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.skins-carousel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+/*Адаптивность*/
+
+/*4:3*/
+@media (max-width: 800px) and (min-aspect-ratio: 4/5) {
+  .menu-play, .menu-skins {
+    width: 170px;
+    padding: 10px 20px;
+    font-size: 18px;
+  }
+  
+  .skins-preview div:first-child {
+    width: 65px;
+    height: 65px;
+    font-size: 40px;
+  }
+}
+
+/*21:9*/
+@media (min-width: 1920px) and (min-aspect-ratio: 21/9) {
+  .menu-play, .menu-skins {
+    width: 280px;
+    padding: 18px 36px;
+    font-size: 32px;
+  }
+  
+  .skins-preview div:first-child {
+    width: 120px;
+    height: 120px;
+    font-size: 70px;
+  }
+  
+  .skins-arrow-left, .skins-arrow-right {
+    font-size: 40px;
+    padding: 12px 28px;
+  }
+}
+
+/*Телефоны*/
+@media (max-width: 480px) {
+  .menu-screen {
+    padding: 25px 20px;
+  }
+  
+  .menu-play, .menu-skins {
+    width: 150px;
+    padding: 8px 16px;
+    font-size: 16px;
+  }
+  
+  .skins-screen {
+    padding: 20px 15px;
+  }
+  
+  .skins-preview {
+    padding: 15px;
+    min-width: 140px;
+  }
+  
+  .skins-preview div:first-child {
+    width: 55px;
+    height: 55px;
+    font-size: 32px;
+  }
+  
+  .skins-arrow-left, .skins-arrow-right {
+    font-size: 22px;
+    padding: 6px 14px;
+  }
+  
+  .skins-select {
+    width: 130px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
