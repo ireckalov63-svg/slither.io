@@ -23,7 +23,7 @@ const FOOD_GROWTH = 1;                  // ПРИРОСТ: На сколько �
 const FOOD_FROM_DEATH_RATIO = 3;        // РАЗМЕР КРОШЕК: Каждое N-е звено умершей змейки становится едой.
 
 //  НАСТРОЙКИ БОТОВ
-const BOT_COUNT = 20;                   // КОЛИЧЕСТВО БОТОВ: Сколько ИИ-змейек на карте.
+const BOT_COUNT = 40;                   // КОЛИЧЕСТВО БОТОВ: Сколько ИИ-змейек на карте.
 const BOT_TURN_CHANCE = 0.02;           // ВЕРОЯТНОСТЬ ПОВОРОТА: 0.01-0.1. Чем выше, тем "нервнее" бот.
 const BOT_TURN_AMOUNT = 2;              // УГОЛ ПОВОРОТА: Максимальный градус разворота за срабатывание.
 const BOT_RESPAWN_DELAY = 3000;         // ЗАДЕРЖКА ВОЗРОЖДЕНИЯ: Время в мс до появления нового бота.
@@ -35,9 +35,9 @@ const MOUSE_DEADZONE = 5;               // МЁРТВАЯ ЗОНА: Если м�
 
 //  НАСТРОЙКИ ВИЗУАЛА
 const GRID_SIZE = 100;                  // РАЗМЕР КЛЕТКИ: Расстояние между линиями сетки фона.
-const GRID_COLOR = '#1a1a2e';         // ЦВЕТ СЕТКИ: Цвет линий на фоне.
-const BACKGROUND_COLOR = '#0a0a1a';   // ЦВЕТ ФОНА: Основной цвет игровой зоны.
-const BORDER_COLOR = '#ff4757';       // ЦВЕТ ГРАНИЦЫ: Цвет опасной круглой зоны.
+const GRID_COLOR = '#1a1a2e';           // ЦВЕТ СЕТКИ: Цвет линий на фоне.
+const BACKGROUND_COLOR = '#0a0a1a';     // ЦВЕТ ФОНА: Основной цвет игровой зоны.
+const BORDER_COLOR = '#ff4757';         // ЦВЕТ ГРАНИЦЫ: Цвет опасной круглой зоны.
 const BORDER_WIDTH = 8;                 // ТОЛЩИНА ГРАНИЦЫ: Ширина линии круга.
 const WARNING_RING_WIDTH = 20;          // ТОЛЩИНА ПРЕДУПРЕЖДЕНИЯ: Красная зона перед границей.
 const SHADOW_BLUR_BODY = 15;            // СВЕЧЕНИЕ ТЕЛА: Неоновый ореол вокруг змейки.
@@ -46,12 +46,34 @@ const SHADOW_BLUR_FOOD = 5;             // СВЕЧЕНИЕ ЕДЫ: Неонов
 //  НАСТРОЙКИ ГЕЙМПЛЕЯ
 const GAME_OVER_DELAY = 150;            // ЗАДЕРЖКА ЭКРАНА СМЕРТИ: Время в мс перед показом меню проигрыша.
 
-// ============================================================================
-//  ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ 
-// ============================================================================
+//  НАСТРОЙКИ БАФФОВ
+//  Магнит
+const BUFF_MAGNET_COOLDOWN = 60;        // ВРЕМЯ ВОССТАНОВЛЕНИЯ МАГНИТА: 60 секунд (1 минута) до повторного использования
+const BUFF_MAGNET_DURATION = 7000;      // ДЛИТЕЛЬНОСТЬ ИНДИКАТОРА МАГНИТА: 7 секунд (визуальное отображение)
+const BUFF_MAGNET_RADIUS = 300;         // РАДИУС ДЕЙСТВИЯ МАГНИТА: 300 пикселей — на таком расстоянии еда начинает притягиваться
+const BUFF_MAGNET_PULL_SPEED = 8;       // СКОРОСТЬ ПРИТЯЖЕНИЯ ЕДЫ: Множитель скорости движения еды к игроку
 
+//  Щит
+const BUFF_SHIELD_COOLDOWN = 60;        // ВРЕМЯ ВОССТАНОВЛЕНИЯ ЩИТА: 60 секунд (1 минута) до повторного использования
+const BUFF_SHIELD_DURATION = 10000;      // ДЛИТЕЛЬНОСТЬ ЩИТА: 10000 мс (10 секунд) защиты от столкновений
+const BUFF_SHIELD_COLOR = '#4ecdc4';    // ЦВЕТ ВИЗУАЛЬНОГО ЭФФЕКТА ЩИТА: Цвет свечения вокруг головы змейки
+
+//  Ускорение
+const BUFF_SPEED_COOLDOWN = 60;         // ВРЕМЯ ВОССТАНОВЛЕНИЯ УСКОРЕНИЯ: 60 секунд (1 минута) до повторного использования
+const BUFF_SPEED_DURATION = 5000;       // ДЛИТЕЛЬНОСТЬ УСКОРЕНИЯ: 5000 мс (5 секунд) повышенной скорости
+const BUFF_SPEED_MULTIPLIER = 2.0;      // МНОЖИТЕЛЬ СКОРОСТИ: Во сколько раз быстрее двигается змейка (2.0 = в 2 раза)
+
+//  Заморозка
+const BUFF_FREEZE_COOLDOWN = 60;        // ВРЕМЯ ВОССТАНОВЛЕНИЯ ЗАМОРОЗКИ: 60 секунд (1 минута) до повторного использования
+const BUFF_FREEZE_DURATION = 10000;      // ДЛИТЕЛЬНОСТЬ ЗАМОРОЗКИ: 10000 мс (10 секунд) замедления ботов
+const BUFF_FREEZE_SLOW_FACTOR = 0.2;    // КОЭФФИЦИЕНТ ЗАМЕДЛЕНИЯ: 0.3 = боты двигаются на 30% от обычной скорости
+
+// ============================================================================
+//  ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+// ============================================================================
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
+
 const menuScreen = document.querySelector('.menu-screen');
 const skinsScreen = document.querySelector('.skins-screen');
 const gameoverScreen = document.querySelector('.gameover-screen');
@@ -84,7 +106,31 @@ let foods = [];
 let player = null;
 let bots = [];
 let animationId = null;
-let lastFrameTime = 0; 
+let lastFrameTime = 0;
+
+// Состояние баффов игрока
+const playerBuffs = {
+    magnet: { ready: true, cooldown: BUFF_MAGNET_COOLDOWN, lastUsed: 0, endTime: 0, active: false, name: '🧲 Магнит', rafId: null },
+    shield: { ready: true, cooldown: BUFF_SHIELD_COOLDOWN, lastUsed: 0, endTime: 0, active: false, name: '🛡️ Щит', rafId: null },
+    speed:  { ready: true, cooldown: BUFF_SPEED_COOLDOWN,  lastUsed: 0, endTime: 0, active: false, name: '⚡ Ускорение', rafId: null },
+    freeze: { ready: true, cooldown: BUFF_FREEZE_COOLDOWN, lastUsed: 0, endTime: 0, active: false, name: '❄️ Заморозка', rafId: null }
+};
+
+// Ссылки на кнопки баффов
+const buffButtons = {
+    magnet: document.getElementById('buff-magnet'),
+    shield: document.getElementById('buff-shield'),
+    speed:  document.getElementById('buff-speed'),
+    freeze: document.getElementById('buff-freeze')
+};
+
+//  ИНДИКАТОРЫ АКТИВНЫХ БАФФОВ
+const buffIndicators = {
+    shield: document.getElementById('shield-indicator'),
+    speed:  document.getElementById('speed-indicator'),
+    magnet: document.getElementById('magnet-indicator'),
+    freeze: document.getElementById('freeze-indicator')
+};
 
 // ============================================================================
 //  КЛАССЫ
@@ -119,7 +165,7 @@ class Snake {
         this.isBot = isBot;
         this.angle = Math.random() * Math.PI * 2;
         this.targetAngle = this.angle;
-        this.speed = SNAKE_SPEED; 
+        this.speed = SNAKE_SPEED;
         this.alive = true;
         for (let i = 0; i < this.length; i++) this.body.push({ x, y });
     }
@@ -128,7 +174,6 @@ class Snake {
         if (!this.alive) return;
         const head = this.body[0];
 
-        // Управление
         if (this.isBot) {
             if (Math.random() < BOT_TURN_CHANCE) this.targetAngle += (Math.random() - 0.5) * BOT_TURN_AMOUNT;
             const dist = Math.hypot(head.x - WORLD_CENTER.x, head.y - WORLD_CENTER.y);
@@ -139,30 +184,32 @@ class Snake {
             if (Math.hypot(dx, dy) > MOUSE_DEADZONE) this.targetAngle = Math.atan2(dy, dx);
         }
 
-        // Плавный поворот
         let diff = this.targetAngle - this.angle;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
         this.angle += diff * SNAKE_TURN_SMOOTHNESS;
 
-        //  Движение с нормализацией по времени (скорость всегда одинаковая)
         head.x += Math.cos(this.angle) * this.speed * dtMultiplier;
         head.y += Math.sin(this.angle) * this.speed * dtMultiplier;
 
-        //  ПРОВЕРКА КРУГЛОЙ ГРАНИЦЫ
+        
         const distFromCenter = Math.hypot(head.x - WORLD_CENTER.x, head.y - WORLD_CENTER.y);
         if (distFromCenter >= WORLD_RADIUS - this.radius) {
+            if (!this.isBot && playerBuffs.shield.active) {
+                deactivateShield();
+                showNotification('🛡️ Щит поглотил удар!', 'shield');
+                head.x -= Math.cos(this.angle) * this.speed * dtMultiplier * 3;
+                head.y -= Math.sin(this.angle) * this.speed * dtMultiplier * 3;
+                return;
+            }
             this.die();
             return;
         }
 
-        // Обновление тела
         this.body.unshift({ x: head.x, y: head.y });
         if (this.body.length > this.length) this.body.pop();
-
         this.checkCollisions();
 
-        // Камера
         if (!this.isBot) {
             camera.x += (this.body[0].x - canvas.width / 2 - camera.x) * CAMERA_SMOOTHNESS;
             camera.y += (this.body[0].y - canvas.height / 2 - camera.y) * CAMERA_SMOOTHNESS;
@@ -184,6 +231,14 @@ class Snake {
             if (other === this) continue;
             for (const seg of other.body) {
                 if (Math.hypot(head.x - seg.x, head.y - seg.y) < this.radius + other.radius * 0.85) {
+                    if (!this.isBot && playerBuffs.shield.active) {
+                        deactivateShield();
+                        showNotification('🛡️ Щит поглотил удар!', 'shield');
+                        const pushAngle = Math.atan2(head.y - seg.y, head.x - seg.x);
+                        head.x += Math.cos(pushAngle) * 15;
+                        head.y += Math.sin(pushAngle) * 15;
+                        return;
+                    }
                     this.die();
                     return;
                 }
@@ -196,7 +251,7 @@ class Snake {
         this.body.forEach((p, i) => { if (i % FOOD_FROM_DEATH_RATIO === 0) foods.push(new Food(p.x, p.y, 6, this.color)); });
         if (!this.isBot) {
             isGameOver = true;
-            stopGame(); 
+            stopGame();
             if (this.length > bestScore) { bestScore = this.length; localStorage.setItem('snakeBestScore', bestScore); if (goBestEl) goBestEl.textContent = bestScore; }
             if (goLengthEl) goLengthEl.textContent = this.length;
             setTimeout(() => showScreen('gameover'), GAME_OVER_DELAY);
@@ -250,7 +305,6 @@ function drawBorder() {
     ctx.lineWidth = WARNING_RING_WIDTH;
     ctx.strokeStyle = BORDER_COLOR + '33';
     ctx.stroke();
-
     ctx.beginPath();
     ctx.arc(WORLD_CENTER.x - camera.x, WORLD_CENTER.y - camera.y, WORLD_RADIUS, 0, Math.PI*2);
     ctx.lineWidth = BORDER_WIDTH;
@@ -258,6 +312,288 @@ function drawBorder() {
     ctx.setLineDash([15, 10]);
     ctx.stroke();
     ctx.setLineDash([]);
+}
+
+function drawShield() {
+    if (!player?.alive || !playerBuffs.shield.active) return;
+    ctx.save();
+    ctx.strokeStyle = BUFF_SHIELD_COLOR;
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = BUFF_SHIELD_COLOR;
+    const head = player.body[0];
+    const sx = head.x - camera.x;
+    const sy = head.y - camera.y;
+    ctx.beginPath();
+    ctx.arc(sx, sy, player.radius + 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+}
+
+// ============================================================================
+//  СИСТЕМА УВЕДОМЛЕНИЙ
+// ============================================================================
+function showNotification(message, type = 'default') {
+    const container = document.getElementById('buff-notifications');
+    if (!container) return;
+    const notif = document.createElement('div');
+    notif.className = `buff-notification ${type}`;
+    notif.textContent = message;
+    container.appendChild(notif);
+    setTimeout(() => {
+        notif.style.opacity = '0';
+        notif.style.transform = 'translateX(20px)';
+        setTimeout(() => notif.remove(), 300);
+    }, 2700);
+}
+
+function showCooldownNotification(buffName) {
+    const buff = playerBuffs[buffName];
+    if (!buff) return;
+    const elapsed = (Date.now() - buff.lastUsed) / 1000;
+    const remaining = Math.ceil(buff.cooldown - elapsed);
+    if (remaining > 0) {
+        const message = `${buff.name}: можно использовать через ${remaining} сек.`;
+        showNotification(message, 'cooldown');
+    }
+}
+
+// ============================================================================
+//  СИСТЕМА БАФФОВ
+// ============================================================================
+function isBuffOnCooldown(name) {
+    const b = playerBuffs[name];
+    if (!b) return false;
+    return (Date.now() - b.lastUsed) / 1000 < b.cooldown;
+}
+
+function canUseBuff(name) {
+    const b = playerBuffs[name];
+    if (!b?.ready) return false;
+    return (Date.now() - b.lastUsed) / 1000 >= b.cooldown;
+}
+
+function activateBuff(name) {
+    if (isBuffOnCooldown(name)) {
+        showCooldownNotification(name);
+        return false;
+    }
+    if (!canUseBuff(name)) return false;
+    
+    const b = playerBuffs[name];
+    const now = Date.now();
+    b.lastUsed = now;
+    b.ready = false;
+    
+    switch(name) {
+        case 'magnet': activateMagnet(now); showNotification('🧲 Магнит активирован!', 'magnet'); break;
+        case 'shield': activateShield(now); showNotification('🛡️ Щит активирован!', 'shield'); break;
+        case 'speed':  activateSpeed(now); showNotification('⚡ Ускорение активировано!', 'speed'); break;
+        case 'freeze': activateFreeze(now); showNotification('❄️ Боты заморожены!', 'freeze'); break;
+    }
+    
+    startBuffCooldown(name);
+    updateBuffButton(name);
+    return true;
+}
+
+//  Магнит
+function activateMagnet(now) {
+    if (!player?.alive) return;
+    playerBuffs.magnet.active = true;
+    playerBuffs.magnet.endTime = now + BUFF_MAGNET_DURATION;
+    toggleBuffIndicator('magnet', true);
+    applyMagnetEffect(); // Применяем сразу при активации
+}
+
+//  Эффект магнита 
+function applyMagnetEffect() {
+    if (!player?.alive) return;
+    const head = player.body[0];
+    
+    for (let i = foods.length - 1; i >= 0; i--) {
+        const food = foods[i];
+        const dist = Math.hypot(head.x - food.x, head.y - food.y);
+        
+        if (dist < BUFF_MAGNET_RADIUS) {
+            // Притягиваем еду
+            const angle = Math.atan2(head.y - food.y, head.x - food.x);
+            food.x += Math.cos(angle) * BUFF_MAGNET_PULL_SPEED * 3;
+            food.y += Math.sin(angle) * BUFF_MAGNET_PULL_SPEED * 3;
+            
+            // Проверяем поедание
+            const newDist = Math.hypot(head.x - food.x, head.y - food.y);
+            if (newDist < player.radius + food.size + 10) {
+                player.length += FOOD_GROWTH;
+                foods.splice(i, 1);
+                foods.push(new Food());
+            }
+        }
+    }
+}
+
+function updateMagnet() {
+    if (!playerBuffs.magnet.active) return;
+    if (Date.now() >= playerBuffs.magnet.endTime) { 
+        deactivateMagnet(); 
+        return; 
+    }
+    applyMagnetEffect(); 
+}
+
+function deactivateMagnet() {
+    playerBuffs.magnet.active = false;
+    toggleBuffIndicator('magnet', false);
+}
+
+//  Щит
+function activateShield(now) {
+    playerBuffs.shield.active = true;
+    playerBuffs.shield.endTime = now + BUFF_SHIELD_DURATION;
+    toggleBuffIndicator('shield', true);
+}
+function updateShield() {
+    if (!playerBuffs.shield.active || !player?.alive) return;
+    if (Date.now() >= playerBuffs.shield.endTime) { deactivateShield(); return; }
+    drawShield();
+}
+function deactivateShield() {
+    playerBuffs.shield.active = false;
+    toggleBuffIndicator('shield', false);
+}
+
+//  Ускорение
+function activateSpeed(now) {
+    playerBuffs.speed.active = true;
+    playerBuffs.speed.endTime = now + BUFF_SPEED_DURATION;
+    toggleBuffIndicator('speed', true);
+}
+function updateSpeed() {
+    if (!playerBuffs.speed.active) return;
+    if (Date.now() >= playerBuffs.speed.endTime) { deactivateSpeed(); return; }
+}
+function deactivateSpeed() {
+    playerBuffs.speed.active = false;
+    toggleBuffIndicator('speed', false);
+}
+function getSpeedMultiplier() { return playerBuffs.speed.active ? BUFF_SPEED_MULTIPLIER : 1; }
+
+//  Заморозка 
+function activateFreeze(now) {
+    playerBuffs.freeze.active = true;
+    playerBuffs.freeze.endTime = now + BUFF_FREEZE_DURATION;
+    toggleBuffIndicator('freeze', true);
+}
+function updateFreeze() {
+    if (!playerBuffs.freeze.active) return;
+    if (Date.now() >= playerBuffs.freeze.endTime) { deactivateFreeze(); return; }
+}
+function deactivateFreeze() {
+    playerBuffs.freeze.active = false;
+    toggleBuffIndicator('freeze', false);
+}
+function getBotSpeedMultiplier() { return playerBuffs.freeze.active ? BUFF_FREEZE_SLOW_FACTOR : 1; }
+
+function toggleBuffIndicator(name, show) {
+    const el = buffIndicators[name];
+    if (!el) return;
+    el.hidden = !show;
+    el.classList.toggle('visible', show);
+}
+
+function startBuffCooldown(name) {
+    const buff = playerBuffs[name];
+    const btn = buffButtons[name];
+    if (!btn) return;
+    if (buff.rafId) cancelAnimationFrame(buff.rafId);
+    btn.classList.add('on-cooldown', 'disabled');
+    btn.disabled = true;
+    const duration = buff.cooldown * 1000;
+    const start = Date.now();
+    function update() {
+        const elapsed = Date.now() - start;
+        if (elapsed < duration) { buff.rafId = requestAnimationFrame(update); }
+        else {
+            buff.ready = true;
+            btn.classList.remove('on-cooldown', 'disabled');
+            btn.disabled = false;
+            buff.rafId = null;
+        }
+    }
+    buff.rafId = requestAnimationFrame(update);
+}
+
+function updateBuffButton(name) {
+    const btn = buffButtons[name];
+    const buff = playerBuffs[name];
+    if (!btn || buff.ready) return;
+    btn.disabled = false;
+    btn.classList.remove('on-cooldown', 'disabled');
+}
+
+// Защита от двойных нажатий
+let buffActivationLock = {};
+
+function setupBuffButtons() {
+    Object.entries(buffButtons).forEach(([name, btn]) => {
+        if (!btn) return;
+        buffActivationLock[name] = false;
+
+        const handler = (e) => {
+            // Блокируем повторное срабатывание на 300мс
+            if (buffActivationLock[name]) return;
+            buffActivationLock[name] = true;
+            setTimeout(() => buffActivationLock[name] = false, 300);
+
+            e?.stopPropagation?.();
+            if (currentScreen === 'game') activateBuff(name);
+        };
+
+        btn.addEventListener('click', handler);
+        btn.addEventListener('touchstart', handler, { passive: true });
+    });
+}
+
+// ============================================================================
+//  ИНТЕГРАЦИЯ В ИГРОВОЙ ЦИКЛ
+// ============================================================================
+function updateBuffsInLoop(dtMultiplier) {
+    bots.forEach(bot => {
+        const original = bot.speed;
+        bot.speed *= getBotSpeedMultiplier();
+        bot.update(dtMultiplier);
+        bot.speed = original;
+        bot.draw();
+    });
+    if (player?.alive) {
+        const original = player.speed;
+        player.speed *= getSpeedMultiplier();
+        player.update(dtMultiplier);
+        player.draw();
+        player.speed = original;
+        updateShield();
+        updateSpeed();
+        updateFreeze();
+        updateMagnet(); // 
+    }
+}
+
+// ============================================================================
+//  СБРОС ПРИ НОВОЙ ИГРЕ
+// ============================================================================
+function resetBuffs() {
+    Object.values(playerBuffs).forEach(b => { 
+        b.ready = true; b.active = false; b.lastUsed = 0; b.endTime = 0;
+        if (b.rafId) { cancelAnimationFrame(b.rafId); b.rafId = null; }
+    });
+    Object.values(buffButtons).forEach(btn => {
+        if (btn) { btn.disabled = false; btn.classList.remove('on-cooldown', 'disabled'); }
+    });
+    Object.values(buffIndicators).forEach(el => {
+        if (el) { el.hidden = true; el.classList.remove('visible'); }
+    });
+    const container = document.getElementById('buff-notifications');
+    if (container) container.innerHTML = '';
 }
 
 // ============================================================================
@@ -272,7 +608,7 @@ function createBot() {
 function stopGame() {
     isGameRunning = false;
     if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
-    lastFrameTime = 0; 
+    lastFrameTime = 0;
 }
 
 function initGame() {
@@ -280,12 +616,13 @@ function initGame() {
     player = new Snake(WORLD_CENTER.x, WORLD_CENTER.y, skins[selectedSkinIndex].color, false);
     bots = Array.from({length: BOT_COUNT}, createBot);
     camera = { x: WORLD_CENTER.x - canvas.width/2, y: WORLD_CENTER.y - canvas.height/2 };
-    mouse = { x: canvas.width/2, y: canvas.height/2 }; 
+    mouse = { x: canvas.width/2, y: canvas.height/2 };
     isGameOver = false;
+    resetBuffs();
 }
 
 function startGame() {
-    stopGame(); 
+    stopGame();
     initGame();
     isGameRunning = true;
     lastFrameTime = performance.now();
@@ -294,19 +631,15 @@ function startGame() {
 
 function loop(timestamp) {
     if (!isGameRunning || isGameOver) return;
-
     const dt = timestamp - lastFrameTime || 16.67;
     lastFrameTime = timestamp;
-    const dtMultiplier = dt / 16.67; 
-
+    const dtMultiplier = dt / 16.67;
     ctx.fillStyle = BACKGROUND_COLOR;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     drawGrid();
     foods.forEach(f => f.draw());
-    bots.forEach(b => { b.update(dtMultiplier); b.draw(); });
-    if (player?.alive) { player.update(dtMultiplier); player.draw(); }
+    updateBuffsInLoop(dtMultiplier);
     drawBorder();
-
     animationId = requestAnimationFrame(loop);
 }
 
@@ -336,7 +669,13 @@ function updateSkinsPreview() {
 }
 
 // События
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas(); 
+
 window.addEventListener('mousemove', e => { if (currentScreen === 'game') { mouse.x = e.clientX; mouse.y = e.clientY; } });
 window.addEventListener('touchmove', e => { if (currentScreen === 'game' && e.touches[0]) { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; e.preventDefault(); } }, { passive: false });
 
@@ -356,3 +695,11 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 showScreen('menu');
 updateSkinsPreview();
+setupBuffButtons();
+
+// Инициализация размера canvas
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+showScreen('menu');
+updateSkinsPreview();
+setupBuffButtons();
