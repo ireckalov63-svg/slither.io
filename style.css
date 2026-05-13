@@ -12,11 +12,14 @@ body {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  position: relative;
 }
-/* центровка */
+
+/* Центровка экрана */
 .menu-screen,
 .skins-screen,
-.game-screen {
+.game-screen,
+.gameover-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -24,7 +27,7 @@ body {
   text-align: center;
 }
 
-/* главное меню */
+/* Главное меню */
 .menu-screen {
   gap: 20px;
   background: rgba(20, 28, 48, 0.9);
@@ -49,14 +52,49 @@ body {
   width: 200px;
   text-align: center;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.1s ease;
 }
 
 .menu-play:hover,
 .menu-skins:hover {
   background: linear-gradient(135deg, #4a62a0, #2a3a60);
+  transform: translateY(-1px);
 }
 
-/*экран скинов*/
+.menu-play:active,
+.menu-skins:active {
+  transform: translateY(1px);
+}
+
+/* Game Over */
+.gameover-screen {
+  gap: 20px;
+  background: rgba(20, 28, 48, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 50px;
+  padding: 40px 35px;
+  border: 1px solid rgba(255, 71, 87, 0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.gameover-screen h2 {
+  color: #ff4757;
+  font-size: clamp(24px, 6vw, 36px);
+  margin-bottom: 10px;
+}
+
+.gameover-screen p {
+  color: #fff;
+  font-size: clamp(16px, 4vw, 22px);
+  margin: 5px 0;
+}
+
+.gameover-screen span {
+  color: #ffd966;
+  font-weight: bold;
+}
+
+/* Скины */
 .skins-screen {
   gap: 20px;
   background: rgba(20, 28, 48, 0.95);
@@ -78,24 +116,6 @@ body {
   min-width: 180px;
 }
 
-.skins-preview div:first-child {
-  width: 80px;
-  height: 80px;
-  background: radial-gradient(circle, #ffd966, #e6a017);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 50px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.skins-preview div:last-child {
-  font-size: clamp(14px, 4vw, 22px);
-  font-weight: bold;
-  color: #ffecb3;
-}
-
 .skins-arrow-left,
 .skins-arrow-right {
   background: #1e2a47;
@@ -107,11 +127,18 @@ body {
   color: white;
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.1s ease;
 }
 
 .skins-arrow-left:hover,
 .skins-arrow-right:hover {
   background: #2e3e66;
+  transform: scale(1.02);
+}
+
+.skins-arrow-left:active,
+.skins-arrow-right:active {
+  transform: scale(0.98);
 }
 
 .skins-select {
@@ -126,23 +153,16 @@ body {
   margin-top: 5px;
   width: 150px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.1s ease;
 }
 
 .skins-select:hover {
   background: linear-gradient(135deg, #4d8a5c, #356d46);
+  transform: translateY(-1px);
 }
 
-/*игровое поле*/
-#game-canvas {
-  display: block;
-  width: min(80vh, 90vw);
-  height: min(80vh, 90vw);
-  max-width: 800px;
-  max-height: 800px;
-  background: radial-gradient(circle, #1c2a3a, #0a0f1a);
-  border-radius: 40px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-  cursor: pointer;
+.skins-select:active {
+  transform: translateY(1px);
 }
 
 .skins-carousel {
@@ -153,78 +173,288 @@ body {
   flex-wrap: wrap;
 }
 
-/*Адаптивность*/
-
-/*4:3*/
-@media (max-width: 800px) and (min-aspect-ratio: 4/5) {
-  .menu-play, .menu-skins {
-    width: 170px;
-    padding: 10px 20px;
-    font-size: 18px;
-  }
-  
-  .skins-preview div:first-child {
-    width: 65px;
-    height: 65px;
-    font-size: 40px;
-  }
+/* Игровое поле */
+.game-screen {
+  position: relative;
 }
 
-/*21:9*/
-@media (min-width: 1920px) and (min-aspect-ratio: 21/9) {
-  .menu-play, .menu-skins {
-    width: 280px;
-    padding: 18px 36px;
-    font-size: 32px;
-  }
-  
-  .skins-preview div:first-child {
-    width: 120px;
-    height: 120px;
-    font-size: 70px;
-  }
-  
-  .skins-arrow-left, .skins-arrow-right {
-    font-size: 40px;
-    padding: 12px 28px;
-  }
+#game-canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  max-width: 1920px;
+  max-height: 1080px;
+  background: radial-gradient(circle, #1c2a3a, #0a0f1a);
+  border-radius: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
 }
 
-/*Телефоны*/
-@media (max-width: 480px) {
-  .menu-screen {
-    padding: 25px 20px;
-  }
-  
-  .menu-play, .menu-skins {
-    width: 150px;
-    padding: 8px 16px;
-    font-size: 16px;
-  }
-  
-  .skins-screen {
-    padding: 20px 15px;
-  }
-  
-  .skins-preview {
-    padding: 15px;
-    min-width: 140px;
-  }
-  
-  .skins-preview div:first-child {
-    width: 55px;
-    height: 55px;
-    font-size: 32px;
-  }
-  
-  .skins-arrow-left, .skins-arrow-right {
-    font-size: 22px;
-    padding: 6px 14px;
-  }
-  
-  .skins-select {
-    width: 130px;
-    padding: 8px 16px;
+/* Контейнер баффов */
+.buffs-container {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  padding: 12px 20px;
+  background: rgba(10, 15, 30, 0.75);
+  backdrop-filter: blur(8px);
+  border-radius: 80px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Кнопки баффов */
+.buffs-container button {
+  pointer-events: auto;
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #1e2a3a, #121a2a);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Иконки внутри кнопок */
+.buff-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+  transition: all 0.1s ease;
+  pointer-events: none;
+}
+
+/* Hover состояние */
+.buffs-container button:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(145deg, #2a3a4a, #16202a);
+}
+
+.buffs-container button:hover .buff-icon {
+  transform: scale(1.05);
+}
+
+/* Active состояние */
+.buffs-container button:active {
+  transform: translateY(1px);
+}
+
+/* Состояние кулдауна */
+.buffs-container button.disabled,
+.buffs-container button.on-cooldown {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+  transform: none;
+}
+
+.buffs-container button.disabled:hover,
+.buffs-container button.on-cooldown:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Кольцо кулдауна */
+.buff-cooldown {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: calc(100% + 6px);
+  height: calc(100% + 6px);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.buffs-container button.on-cooldown .buff-cooldown::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 200, 100, 0.9);
+  border-top-color: transparent;
+  border-right-color: transparent;
+  animation: cooldown-spin 1.5s linear infinite;
+}
+
+@keyframes cooldown-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Индикаторы активных баффов */
+.active-buffs {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.buff-active {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  padding: 8px;
+  transition: all 0.2s ease;
+  display: none;
+  object-fit: contain;
+}
+
+.buff-active.visible {
+  display: block;
+  animation: buff-pulse 0.8s ease-in-out infinite;
+}
+
+/* Цветовая привязка индикаторов */
+#shield-indicator {
+  filter: drop-shadow(0 0 5px #00d4ff);
+  border: 2px solid #00d4ff;
+  background: rgba(0, 212, 255, 0.15);
+}
+
+#shield-indicator.visible {
+  box-shadow: 0 0 20px #00d4ff;
+}
+
+#speed-indicator {
+  filter: drop-shadow(0 0 5px #ff4444);
+  border: 2px solid #ff4444;
+  background: rgba(255, 68, 68, 0.15);
+}
+
+#speed-indicator.visible {
+  box-shadow: 0 0 20px #ff4444;
+}
+
+@keyframes buff-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 1; filter: brightness(1.2); }
+}
+
+/* Уведомление о баффах */
+
+/* Контейнер уведомлений */
+.buff-notifications {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 200;
+    pointer-events: none;
+    max-width: 280px;
+}
+
+/* Отдельное уведомление */
+.buff-notification {
+    background: rgba(26, 26, 46, 0.95);
+    border: 2px solid #ffd43b;
+    border-radius: 12px;
+    padding: 10px 16px;
+    color: #fff;
     font-size: 14px;
-  }
+    font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(255, 212, 59, 0.3);
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+    pointer-events: none;
+    max-width: 260px;
+    text-align: left;
+    line-height: 1.3;
+}
+
+/* Цвета для разных типов уведомлений */
+.buff-notification.magnet { border-color: #ffd43b; box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(255, 212, 59, 0.3); }
+.buff-notification.shield { border-color: #4ecdc4; box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(78, 205, 196, 0.3); }
+.buff-notification.speed  { border-color: #ff6b6b; box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(255, 107, 107, 0.3); }
+.buff-notification.freeze { border-color: #a5d8ff; box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(165, 216, 255, 0.3); }
+.buff-notification.cooldown { border-color: #ff6b6b; }
+
+/* Анимации */
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(20px); }
+}
+
+/* Адаптация экрана */
+
+/* Планшеты */
+@media (max-width: 768px) {
+  .buffs-container { bottom: 20px; gap: 10px; padding: 8px 15px; }
+  .buffs-container button { width: 50px; height: 50px; }
+  .buff-icon { width: 26px; height: 26px; }
+  .active-buffs { top: 60px; right: 15px; gap: 8px; }
+  .buff-active { width: 40px; height: 40px; padding: 6px; }
+}
+
+/* Телефоны */
+@media (max-width: 480px) {
+  .menu-screen { padding: 25px 20px; }
+  .menu-play, .menu-skins { width: 150px; padding: 8px 16px; font-size: 16px; }
+  .skins-screen { padding: 20px 15px; }
+  .skins-preview { padding: 15px; min-width: 140px; }
+  .skins-arrow-left, .skins-arrow-right { font-size: 22px; padding: 6px 14px; }
+  .skins-select { width: 130px; padding: 8px 16px; font-size: 14px; }
+  .buffs-container { bottom: 15px; gap: 8px; padding: 6px 12px; }
+  .buffs-container button { width: 48px; height: 48px; }
+  .buff-icon { width: 24px; height: 24px; }
+  .active-buffs { top: 50px; right: 10px; gap: 6px; }
+  .buff-active { width: 36px; height: 36px; padding: 5px; }
+}
+
+/* Квадратные мониторы (4:3) */
+@media (max-aspect-ratio: 5/4) and (min-width: 800px) {
+  .menu-play, .menu-skins { width: 170px; padding: 10px 20px; font-size: 18px; }
+  .buffs-container { bottom: 25px; }
+  .active-buffs { top: 70px; }
+}
+
+/* Широкие мониторы (21:9) */
+@media (min-width: 1920px) and (min-aspect-ratio: 21/9) {
+  .menu-play, .menu-skins { width: 280px; padding: 18px 36px; font-size: 32px; }
+  .skins-arrow-left, .skins-arrow-right { font-size: 40px; padding: 12px 28px; }
+  .buffs-container { bottom: 50px; gap: 20px; padding: 15px 25px; }
+  .buffs-container button { width: 80px; height: 80px; }
+  .buff-icon { width: 45px; height: 45px; }
+  .active-buffs { top: 100px; right: 40px; gap: 15px; }
+  .buff-active { width: 60px; height: 60px; padding: 10px; }
+}
+
+/* Альбомная ориентация */
+@media (orientation: landscape) and (max-height: 500px) {
+  .buffs-container { bottom: 10px; gap: 8px; padding: 5px 10px; }
+  .buffs-container button { width: 42px; height: 42px; }
+  .buff-icon { width: 22px; height: 22px; }
+  .active-buffs { top: 45px; right: 10px; }
+  .buff-active { width: 32px; height: 32px; }
+}
+
+/* Тач-область */
+@media (max-width: 600px) {
+  .buffs-container button { min-width: 44px; min-height: 44px; }
 }
