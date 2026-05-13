@@ -23,17 +23,49 @@
 
   <!-- Экран после смерти -->
   <div class="gameover-screen"> 
-    <h2>Игра окончена!</h2>
+    <h2>💀 Игра окончена!</h2>
     <p>Ваша длина: <span class="go-length">0</span></p>
     <p>🏆 Рекорд: <span class="go-best">0</span></p>
     <button class="menu-play">Играть снова</button>
     <button class="menu-skins">В меню</button>
   </div>
 
+  <!-- Контейнер для уведомлений о баффах -->
+  <div id="buff-notifications" class="buff-notifications"></div>
+
   <!-- Игровое поле -->
   <div class="game-screen">
     <canvas id="game-canvas"></canvas>
+
+    <!-- Баффы -->
+    <div class="buffs-container">
+      <button id="buff-magnet" title="Магнит" aria-label="Активировать магнит" role="button">
+        <img src="img/magnit.png" class="buff-icon" alt="Магнит">
+        <span class="buff-cooldown"></span>
+      </button>
+      <button id="buff-shield" title="Щит" aria-label="Активировать щит" role="button">
+        <img src="img/shield.png" class="buff-icon" alt="Щит">
+        <span class="buff-cooldown"></span>
+      </button>
+      <button id="buff-speed" title="Ускорение" aria-label="Активировать ускорение" role="button">
+        <img src="img/boost.png" class="buff-icon" alt="Ускорение">
+        <span class="buff-cooldown"></span>
+      </button>
+      <button id="buff-freeze" title="Заморозка" aria-label="Заморозить ботов" role="button">
+        <img src="img/freeze.png" class="buff-icon" alt="Заморозка">
+        <span class="buff-cooldown"></span>
+      </button>
+    </div>
+
+    <!-- Индикаторы -->
+    <div class="active-buffs">
+      <img src="img/shield.png" id="shield-indicator" class="buff-active" alt="Щит активен" hidden>
+      <img src="img/boost.png" id="speed-indicator" class="buff-active" alt="Ускорение активно" hidden>
+      <img src="img/magnit.png" id="magnet-indicator" class="buff-active" alt="Магнит активен" hidden>
+      <img src="img/freeze.png" id="freeze-indicator" class="buff-active" alt="Заморозка активна" hidden>
+    </div>
   </div>
+
   <script src="./script.js"></script>
 </body>
 </html>
