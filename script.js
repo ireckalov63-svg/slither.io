@@ -55,7 +55,7 @@ const BUFF_MAGNET_PULL_SPEED = 8;       // СКОРОСТЬ ПРИТЯЖЕНИЯ
 
 //  Щит
 const BUFF_SHIELD_COOLDOWN = 60;        // ВРЕМЯ ВОССТАНОВЛЕНИЯ ЩИТА: 60 секунд (1 минута) до повторного использования
-const BUFF_SHIELD_DURATION = 10000;      // ДЛИТЕЛЬНОСТЬ ЩИТА: 10000 мс (10 секунд) защиты от столкновений
+const BUFF_SHIELD_DURATION = 10000;     // ДЛИТЕЛЬНОСТЬ ЩИТА: 10000 мс (10 секунд) защиты от столкновений
 const BUFF_SHIELD_COLOR = '#4ecdc4';    // ЦВЕТ ВИЗУАЛЬНОГО ЭФФЕКТА ЩИТА: Цвет свечения вокруг головы змейки
 
 //  Ускорение
@@ -65,8 +65,21 @@ const BUFF_SPEED_MULTIPLIER = 2.0;      // МНОЖИТЕЛЬ СКОРОСТИ: 
 
 //  Заморозка
 const BUFF_FREEZE_COOLDOWN = 60;        // ВРЕМЯ ВОССТАНОВЛЕНИЯ ЗАМОРОЗКИ: 60 секунд (1 минута) до повторного использования
-const BUFF_FREEZE_DURATION = 10000;      // ДЛИТЕЛЬНОСТЬ ЗАМОРОЗКИ: 10000 мс (10 секунд) замедления ботов
+const BUFF_FREEZE_DURATION = 10000;     // ДЛИТЕЛЬНОСТЬ ЗАМОРОЗКИ: 10000 мс (10 секунд) замедления ботов
 const BUFF_FREEZE_SLOW_FACTOR = 0.2;    // КОЭФФИЦИЕНТ ЗАМЕДЛЕНИЯ: 0.3 = боты двигаются на 30% от обычной скорости
+
+// ============================================================================
+//  НАСТРОЙКИ КАСТОМНЫХ СКИНОВ (PNG)
+// ============================================================================
+const CUSTOM_SKIN_CONFIG = {
+    segments: 2000,                      // Количество сегментов для плавного движения (база)
+    spacing: 0.1,                         // Расстояние между точками траектории
+    headSmooth: 1,                      // Плавность следования головы за мышью
+    headImageWidth: 130,                // Ширина головы в пикселях на исходном PNG (640x320)
+    headToBodyGap: 20,                  // Доп. расстояние между головой и первым сегментом тела
+    segmentOverlap: 20,                 // Перекрытие сегментов в ПИКСЕЛЯХ (не коэффициент!)
+    skinThickness: 130                  // ТОЛЩИНА (ВЫСОТА) СКИНА: Высота сегмента в пикселях
+};
 
 // ============================================================================
 //  ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
@@ -88,7 +101,14 @@ let isGameOver = false;
 let isGameRunning = false;
 let currentScreen = 'menu';
 
+// === СКИНЫ
 const skins = [
+    { name: 'Кастом 1', imagePath: 'img//skin/skin1.png'},
+    { name: 'Кастом 2', imagePath: 'img//skin/skin2.png'},
+    { name: 'Кастом 3', imagePath: 'img//skin/skin3.png'},
+    { name: 'Кастом 4', imagePath: 'img//skin/skin4.png'},
+    { name: 'Кастом 5', imagePath: 'img//skin/skin5.png'},
+    { name: 'Кастом 6', imagePath: 'img//skin/skin6.png'},
     { color: '#00ffcc', name: 'Неон' },
     { color: '#ff6b6b', name: 'Огонь' },
     { color: '#4ecdc4', name: 'Мята' },
@@ -108,7 +128,6 @@ let bots = [];
 let animationId = null;
 let lastFrameTime = 0;
 
-// Состояние баффов игрока
 const playerBuffs = {
     magnet: { ready: true, cooldown: BUFF_MAGNET_COOLDOWN, lastUsed: 0, endTime: 0, active: false, name: '🧲 Магнит', rafId: null },
     shield: { ready: true, cooldown: BUFF_SHIELD_COOLDOWN, lastUsed: 0, endTime: 0, active: false, name: '🛡️ Щит', rafId: null },
@@ -116,7 +135,6 @@ const playerBuffs = {
     freeze: { ready: true, cooldown: BUFF_FREEZE_COOLDOWN, lastUsed: 0, endTime: 0, active: false, name: '❄️ Заморозка', rafId: null }
 };
 
-// Ссылки на кнопки баффов
 const buffButtons = {
     magnet: document.getElementById('buff-magnet'),
     shield: document.getElementById('buff-shield'),
@@ -124,7 +142,6 @@ const buffButtons = {
     freeze: document.getElementById('buff-freeze')
 };
 
-//  ИНДИКАТОРЫ АКТИВНЫХ БАФФОВ
 const buffIndicators = {
     shield: document.getElementById('shield-indicator'),
     speed:  document.getElementById('speed-indicator'),
@@ -157,7 +174,7 @@ class Food {
 }
 
 class Snake {
-    constructor(x, y, color, isBot = false) {
+    constructor(x, y, color, isBot = false, skinData = null) {
         this.body = [];
         this.length = SNAKE_START_LENGTH;
         this.radius = SNAKE_RADIUS;
@@ -167,7 +184,44 @@ class Snake {
         this.targetAngle = this.angle;
         this.speed = SNAKE_SPEED;
         this.alive = true;
+        
+        // === КАСТОМНЫЙ СКИН ===
+        this.skinData = skinData;
+        this.useCustomSkin = !isBot && skinData?.imagePath;
+        this.customImage = null;
+        this.customPoints = [];
+        this.customImageLoaded = false;
+        
+        if (this.useCustomSkin) {
+            this.customImage = new Image();
+            this.customImage.crossOrigin = "Anonymous";
+            this.customImage.src = skinData.imagePath;
+            this.customImage.onload = () => {
+                this.customImageLoaded = true;
+                for (let i = 0; i < CUSTOM_SKIN_CONFIG.segments; i++) {
+                    this.customPoints.push({ x: x - i * CUSTOM_SKIN_CONFIG.spacing, y: y });
+                }
+            };
+            this.customImage.onerror = () => {
+                console.warn(`⚠️ Не загружен: ${skinData.imagePath}`);
+                this.useCustomSkin = false;
+            };
+        }
+        
         for (let i = 0; i < this.length; i++) this.body.push({ x, y });
+    }
+
+    // 🔹 МЕТОД ДОБАВЛЕНИЯ ТОЧЕК ПРИ РОСТЕ — ПОСЛЕ headToBodyGap (индекс 2)
+    addCustomPoints(count) {
+        if (!this.useCustomSkin || !this.customImageLoaded) return;
+        
+        // 🔹 Добавляем точки ПОСЛЕ headToBodyGap (индекс 2: после головы и первого сегмента)
+        const insertIndex = 2;
+        const referencePoint = this.customPoints[Math.min(insertIndex, this.customPoints.length - 1)];
+        
+        for (let i = 0; i < count; i++) {
+            this.customPoints.splice(insertIndex + i, 0, { x: referencePoint.x, y: referencePoint.y });
+        }
     }
 
     update(dtMultiplier) {
@@ -192,7 +246,29 @@ class Snake {
         head.x += Math.cos(this.angle) * this.speed * dtMultiplier;
         head.y += Math.sin(this.angle) * this.speed * dtMultiplier;
 
-        
+        // Обновление точек для кастомного скина
+        if (this.useCustomSkin && this.customImageLoaded && this.customPoints.length > 0) {
+            this.customPoints[0].x += (head.x - this.customPoints[0].x) * CUSTOM_SKIN_CONFIG.headSmooth;
+            this.customPoints[0].y += (head.y - this.customPoints[0].y) * CUSTOM_SKIN_CONFIG.headSmooth;
+
+            //  Обновляем ВСЕ точки (динамическая длина)
+            for (let i = 1; i < this.customPoints.length; i++) {
+                const prev = this.customPoints[i - 1];
+                const curr = this.customPoints[i];
+                const dx = prev.x - curr.x;
+                const dy = prev.y - curr.y;
+                const angle = Math.atan2(dy, dx);
+                const currentSpacing = (i === 1) 
+                    ? CUSTOM_SKIN_CONFIG.spacing + CUSTOM_SKIN_CONFIG.headToBodyGap 
+                    : CUSTOM_SKIN_CONFIG.spacing;
+                curr.x = prev.x - Math.cos(angle) * currentSpacing;
+                curr.y = prev.y - Math.sin(angle) * currentSpacing;
+            }
+        }
+
+        this.body.unshift({ x: head.x, y: head.y });
+        if (this.body.length > this.length) this.body.pop();
+
         const distFromCenter = Math.hypot(head.x - WORLD_CENTER.x, head.y - WORLD_CENTER.y);
         if (distFromCenter >= WORLD_RADIUS - this.radius) {
             if (!this.isBot && playerBuffs.shield.active) {
@@ -206,8 +282,6 @@ class Snake {
             return;
         }
 
-        this.body.unshift({ x: head.x, y: head.y });
-        if (this.body.length > this.length) this.body.pop();
         this.checkCollisions();
 
         if (!this.isBot) {
@@ -222,6 +296,10 @@ class Snake {
             const f = foods[i];
             if (Math.hypot(head.x - f.x, head.y - f.y) < this.radius + f.size) {
                 this.length += FOOD_GROWTH;
+                
+                //  ДОБАВЛЯЕМ ВИЗУАЛЬНЫЕ ТОЧКИ ПРИ РОСТЕ — ПОСЛЕ headToBodyGap
+                this.addCustomPoints(FOOD_GROWTH);
+                
                 foods.splice(i, 1);
                 foods.push(new Food());
             }
@@ -248,7 +326,7 @@ class Snake {
 
     die() {
         this.alive = false;
-        this.body.forEach((p, i) => { if (i % FOOD_FROM_DEATH_RATIO === 0) foods.push(new Food(p.x, p.y, 6, this.color)); });
+        this.body.forEach((p, i) => { if (i % FOOD_FROM_DEATH_RATIO === 0) foods.push(new Food(p.x, p.y, 6, this.color || '#fff')); });
         if (!this.isBot) {
             isGameOver = true;
             stopGame();
@@ -262,6 +340,14 @@ class Snake {
 
     draw() {
         if (!this.alive) return;
+        if (this.useCustomSkin && this.customImageLoaded && this.customImage.complete) {
+            this.drawCustomSkin();
+        } else {
+            this.drawCircleSkin();
+        }
+    }
+    
+    drawCircleSkin() {
         ctx.shadowBlur = SHADOW_BLUR_BODY;
         ctx.shadowColor = this.color;
         for (let i = this.body.length - 1; i >= 0; i--) {
@@ -282,6 +368,71 @@ class Snake {
                 ctx.arc(sx + Math.cos(a2)*eo, sy + Math.sin(a2)*eo, 4, 0, Math.PI*2);
                 ctx.fill();
             }
+        }
+        ctx.shadowBlur = 0;
+    }
+    
+    // === ОТРИСОВКА КАСТОМНОГО СКИНА — ПРОПОРЦИОНАЛЬНОЕ МАСШТАБИРОВАНИЕ ===
+    drawCustomSkin() {
+        if (!this.customImage?.complete || this.customPoints.length === 0) return;
+        
+        const img = this.customImage;
+        const headImgW = this.skinData.headImageWidth || CUSTOM_SKIN_CONFIG.headImageWidth;
+        const bodyImgW = img.width - headImgW;
+        const bodySegments = CUSTOM_SKIN_CONFIG.segments - 1;
+        const segmentWidth = bodyImgW / bodySegments;
+        const overlapPx = CUSTOM_SKIN_CONFIG.segmentOverlap;
+        
+        //  ПРОПОРЦИОНАЛЬНОЕ МАСШТАБИРОВАНИЕ
+        const targetHeight = CUSTOM_SKIN_CONFIG.skinThickness;
+        const scale = targetHeight / img.height;
+        
+        const headDrawWidth = headImgW * scale;
+        const bodyDrawWidth = (segmentWidth + overlapPx) * scale;
+
+        //  ИСПОЛЬЗУЕМ ДИНАМИЧЕСКУЮ ДЛИНУ customPoints
+        for (let i = 0; i < this.customPoints.length; i++) {
+            const p = this.customPoints[i];
+            const sx = p.x - camera.x;
+            const sy = p.y - camera.y;
+            
+            if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) continue;
+            
+            let angle;
+            if (i === 0 && this.customPoints.length > 1) {
+                angle = Math.atan2(this.customPoints[1].y - p.y, this.customPoints[1].x - p.x);
+            } else if (i === this.customPoints.length - 1 && i > 0) {
+                angle = Math.atan2(p.y - this.customPoints[i-1].y, p.x - this.customPoints[i-1].x);
+            } else if (i > 0 && i < this.customPoints.length - 1) {
+                angle = Math.atan2(
+                    this.customPoints[i+1].y - this.customPoints[i-1].y, 
+                    this.customPoints[i+1].x - this.customPoints[i-1].x
+                );
+            } else {
+                angle = this.angle;
+            }
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(angle);
+            
+            if (i === 0) {
+                ctx.drawImage(
+                    img,
+                    0, 0, headImgW, img.height,
+                    -headDrawWidth / 2, -targetHeight / 2, headDrawWidth, targetHeight
+                );
+            } else {
+                const sliceIdx = (i - 1) % bodySegments; // Зацикливаем слайсы тела
+                const srcW = segmentWidth + overlapPx;
+                ctx.drawImage(
+                    img,
+                    headImgW + sliceIdx * segmentWidth, 0,
+                    srcW, img.height,
+                    -bodyDrawWidth / 2, -targetHeight / 2, bodyDrawWidth, targetHeight
+                );
+            }
+            ctx.restore();
         }
         ctx.shadowBlur = 0;
     }
@@ -397,34 +548,28 @@ function activateBuff(name) {
     return true;
 }
 
-//  Магнит
 function activateMagnet(now) {
     if (!player?.alive) return;
     playerBuffs.magnet.active = true;
     playerBuffs.magnet.endTime = now + BUFF_MAGNET_DURATION;
     toggleBuffIndicator('magnet', true);
-    applyMagnetEffect(); // Применяем сразу при активации
+    applyMagnetEffect();
 }
 
-//  Эффект магнита 
 function applyMagnetEffect() {
     if (!player?.alive) return;
     const head = player.body[0];
-    
     for (let i = foods.length - 1; i >= 0; i--) {
         const food = foods[i];
         const dist = Math.hypot(head.x - food.x, head.y - food.y);
-        
         if (dist < BUFF_MAGNET_RADIUS) {
-            // Притягиваем еду
             const angle = Math.atan2(head.y - food.y, head.x - food.x);
             food.x += Math.cos(angle) * BUFF_MAGNET_PULL_SPEED * 3;
             food.y += Math.sin(angle) * BUFF_MAGNET_PULL_SPEED * 3;
-            
-            // Проверяем поедание
             const newDist = Math.hypot(head.x - food.x, head.y - food.y);
             if (newDist < player.radius + food.size + 10) {
                 player.length += FOOD_GROWTH;
+                player.addCustomPoints(FOOD_GROWTH); // 🔹 Рост визуальных точек при магните
                 foods.splice(i, 1);
                 foods.push(new Food());
             }
@@ -434,11 +579,8 @@ function applyMagnetEffect() {
 
 function updateMagnet() {
     if (!playerBuffs.magnet.active) return;
-    if (Date.now() >= playerBuffs.magnet.endTime) { 
-        deactivateMagnet(); 
-        return; 
-    }
-    applyMagnetEffect(); 
+    if (Date.now() >= playerBuffs.magnet.endTime) { deactivateMagnet(); return; }
+    applyMagnetEffect();
 }
 
 function deactivateMagnet() {
@@ -446,7 +588,6 @@ function deactivateMagnet() {
     toggleBuffIndicator('magnet', false);
 }
 
-//  Щит
 function activateShield(now) {
     playerBuffs.shield.active = true;
     playerBuffs.shield.endTime = now + BUFF_SHIELD_DURATION;
@@ -462,7 +603,6 @@ function deactivateShield() {
     toggleBuffIndicator('shield', false);
 }
 
-//  Ускорение
 function activateSpeed(now) {
     playerBuffs.speed.active = true;
     playerBuffs.speed.endTime = now + BUFF_SPEED_DURATION;
@@ -478,7 +618,6 @@ function deactivateSpeed() {
 }
 function getSpeedMultiplier() { return playerBuffs.speed.active ? BUFF_SPEED_MULTIPLIER : 1; }
 
-//  Заморозка 
 function activateFreeze(now) {
     playerBuffs.freeze.active = true;
     playerBuffs.freeze.endTime = now + BUFF_FREEZE_DURATION;
@@ -531,24 +670,19 @@ function updateBuffButton(name) {
     btn.classList.remove('on-cooldown', 'disabled');
 }
 
-// Защита от двойных нажатий
 let buffActivationLock = {};
 
 function setupBuffButtons() {
     Object.entries(buffButtons).forEach(([name, btn]) => {
         if (!btn) return;
         buffActivationLock[name] = false;
-
         const handler = (e) => {
-            // Блокируем повторное срабатывание на 300мс
             if (buffActivationLock[name]) return;
             buffActivationLock[name] = true;
             setTimeout(() => buffActivationLock[name] = false, 300);
-
             e?.stopPropagation?.();
             if (currentScreen === 'game') activateBuff(name);
         };
-
         btn.addEventListener('click', handler);
         btn.addEventListener('touchstart', handler, { passive: true });
     });
@@ -562,8 +696,8 @@ function updateBuffsInLoop(dtMultiplier) {
         const original = bot.speed;
         bot.speed *= getBotSpeedMultiplier();
         bot.update(dtMultiplier);
-        bot.speed = original;
         bot.draw();
+        bot.speed = original;
     });
     if (player?.alive) {
         const original = player.speed;
@@ -574,7 +708,7 @@ function updateBuffsInLoop(dtMultiplier) {
         updateShield();
         updateSpeed();
         updateFreeze();
-        updateMagnet(); // 
+        updateMagnet();
     }
 }
 
@@ -613,7 +747,8 @@ function stopGame() {
 
 function initGame() {
     foods = Array.from({length: FOOD_COUNT}, () => new Food());
-    player = new Snake(WORLD_CENTER.x, WORLD_CENTER.y, skins[selectedSkinIndex].color, false);
+    const selectedSkin = skins[selectedSkinIndex];
+    player = new Snake(WORLD_CENTER.x, WORLD_CENTER.y, selectedSkin.color || null, false, selectedSkin);
     bots = Array.from({length: BOT_COUNT}, createBot);
     camera = { x: WORLD_CENTER.x - canvas.width/2, y: WORLD_CENTER.y - canvas.height/2 };
     mouse = { x: canvas.width/2, y: canvas.height/2 };
@@ -659,12 +794,23 @@ function updateSkinsPreview() {
     if (!skinsPreview) return;
     const s = skins[previewSkinIndex];
     const sel = previewSkinIndex === selectedSkinIndex;
-    skinsPreview.innerHTML = `
-        <div style="width:100px;height:100px;background:${s.color};border-radius:50%;
+    
+    let previewContent = '';
+    if (s.imagePath) {
+        previewContent = `<img src="${s.imagePath}" style="width:96px;height:48px;object-fit:contain;
+            border-radius:6px;margin:20px auto;display:block;
+            border:${sel?'3px solid #fff':'3px solid transparent'};background:#1a1a2e">`;
+    } else {
+        previewContent = `<div style="width:100px;height:100px;background:${s.color};border-radius:50%;
             box-shadow:0 0 30px ${s.color},0 0 60px ${s.color}55;margin:20px auto;
-            border:${sel?'3px solid #fff':'3px solid transparent'}"></div>
-        <p style="color:#fff;font-size:1.2em">${s.name}</p>
+            border:${sel?'3px solid #fff':'3px solid transparent'}"></div>`;
+    }
+    
+    skinsPreview.innerHTML = `
+        ${previewContent}
+        <p style="color:#fff;font-size:1.2em;margin-top:10px">${s.name}</p>
         ${sel ? '<p style="color:#4ecdc4;font-size:0.9em">✓ Выбран</p>' : ''}
+        ${s.imagePath ? '<p style="color:#888;font-size:0.8em">🖼️ PNG</p>' : ''}
     `;
 }
 
@@ -679,7 +825,6 @@ resizeCanvas();
 window.addEventListener('mousemove', e => { if (currentScreen === 'game') { mouse.x = e.clientX; mouse.y = e.clientY; } });
 window.addEventListener('touchmove', e => { if (currentScreen === 'game' && e.touches[0]) { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; e.preventDefault(); } }, { passive: false });
 
-// Кнопки
 document.querySelectorAll('.menu-play').forEach(btn => btn.onclick = () => showScreen('game'));
 document.querySelectorAll('.menu-skins').forEach(btn => btn.onclick = () => showScreen('skins'));
 document.querySelector('.skins-arrow-left')?.addEventListener('click', () => { previewSkinIndex = (previewSkinIndex - 1 + skins.length) % skins.length; updateSkinsPreview(); });
@@ -689,15 +834,8 @@ document.querySelector('.gameover-screen .menu-play')?.addEventListener('click',
 document.querySelector('.gameover-screen .menu-skins')?.addEventListener('click', () => showScreen('menu'));
 
 // ============================================================================
-//  СТАРТ
+// 🚀 СТАРТ
 // ============================================================================
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-showScreen('menu');
-updateSkinsPreview();
-setupBuffButtons();
-
-// Инициализация размера canvas
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 showScreen('menu');
