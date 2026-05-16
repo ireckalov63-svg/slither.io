@@ -2,23 +2,25 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <title>Яндекс Игра</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>🐍 Змейка | Яндекс Игра</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <!-- Главное меню -->
   <div class="menu-screen">
-    <button class="menu-play">Играть</button>
-    <button class="menu-skins">Скины</button>
+    <h1 style="color:#fff;font-size:clamp(24px,8vw,40px);margin-bottom:10px">🐍 Snake.io</h1>
+    <button class="menu-play">▶ Играть</button>
+    <button class="menu-skins">🎨 Скины</button>
   </div>
 
   <!-- Экран скинов -->
   <div class="skins-screen">
-    <button class="skins-arrow-left">←</button>
+    <button class="skins-arrow-left">◀</button>
     <div class="skins-preview"></div>
-    <button class="skins-arrow-right">→</button>
-    <button class="skins-select">Выбрать</button>
+    <button class="skins-arrow-right">▶</button>
+    <button class="skins-select">✓ Выбрать</button>
   </div>
 
   <!-- Экран после смерти -->
@@ -26,8 +28,8 @@
     <h2>💀 Игра окончена!</h2>
     <p>Ваша длина: <span class="go-length">0</span></p>
     <p>🏆 Рекорд: <span class="go-best">0</span></p>
-    <button class="menu-play">Играть снова</button>
-    <button class="menu-skins">В меню</button>
+    <button class="menu-play">🔄 Играть снова</button>
+    <button class="menu-skins">🏠 В меню</button>
   </div>
 
   <!-- Контейнер для уведомлений о баффах -->
@@ -40,32 +42,39 @@
     <!-- Баффы -->
     <div class="buffs-container">
       <button id="buff-magnet" title="Магнит" aria-label="Активировать магнит" role="button">
-        <img src="img/magnit.png" class="buff-icon" alt="Магнит">
+        <img src="img/magnit.png" class="buff-icon" alt="🧲">
         <span class="buff-cooldown"></span>
       </button>
       <button id="buff-shield" title="Щит" aria-label="Активировать щит" role="button">
-        <img src="img/shield.png" class="buff-icon" alt="Щит">
+        <img src="img/shield.png" class="buff-icon" alt="🛡️">
         <span class="buff-cooldown"></span>
       </button>
       <button id="buff-speed" title="Ускорение" aria-label="Активировать ускорение" role="button">
-        <img src="img/boost.png" class="buff-icon" alt="Ускорение">
+        <img src="img/boost.png" class="buff-icon" alt="⚡">
         <span class="buff-cooldown"></span>
       </button>
       <button id="buff-freeze" title="Заморозка" aria-label="Заморозить ботов" role="button">
-        <img src="img/freeze.png" class="buff-icon" alt="Заморозка">
+        <img src="img/freeze.png" class="buff-icon" alt="❄️">
         <span class="buff-cooldown"></span>
       </button>
     </div>
 
-    <!-- Индикаторы -->
+    <!-- Индикаторы активных баффов -->
     <div class="active-buffs">
-      <img src="img/shield.png" id="shield-indicator" class="buff-active" alt="Щит активен" hidden>
-      <img src="img/boost.png" id="speed-indicator" class="buff-active" alt="Ускорение активно" hidden>
-      <img src="img/magnit.png" id="magnet-indicator" class="buff-active" alt="Магнит активен" hidden>
-      <img src="img/freeze.png" id="freeze-indicator" class="buff-active" alt="Заморозка активна" hidden>
+      <img src="img/shield.png" id="shield-indicator" class="buff-active" alt="🛡️" hidden>
+      <img src="img/boost.png" id="speed-indicator" class="buff-active" alt="⚡" hidden>
+      <img src="img/magnit.png" id="magnet-indicator" class="buff-active" alt="🧲" hidden>
+      <img src="img/freeze.png" id="freeze-indicator" class="buff-active" alt="❄️" hidden>
+    </div>
+
+    <!-- Виртуальный джойстик (только для мобильных/планшетов) -->
+    <div id="joystick-container" class="joystick-container" hidden>
+      <div id="joystick-base" class="joystick-base">
+        <div id="joystick-knob" class="joystick-knob"></div>
+      </div>
     </div>
   </div>
 
-  <script src="./script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
