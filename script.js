@@ -569,7 +569,7 @@ function applyMagnetEffect() {
             const newDist = Math.hypot(head.x - food.x, head.y - food.y);
             if (newDist < player.radius + food.size + 10) {
                 player.length += FOOD_GROWTH;
-                player.addCustomPoints(FOOD_GROWTH); // 🔹 Рост визуальных точек при магните
+                player.addCustomPoints(FOOD_GROWTH); 
                 foods.splice(i, 1);
                 foods.push(new Food());
             }
@@ -810,7 +810,6 @@ function updateSkinsPreview() {
         ${previewContent}
         <p style="color:#fff;font-size:1.2em;margin-top:10px">${s.name}</p>
         ${sel ? '<p style="color:#4ecdc4;font-size:0.9em">✓ Выбран</p>' : ''}
-        ${s.imagePath ? '<p style="color:#888;font-size:0.8em">🖼️ PNG</p>' : ''}
     `;
 }
 
