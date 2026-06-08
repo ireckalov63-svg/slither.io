@@ -1,6 +1,41 @@
+let ys = null; // Переменная для хранения SDK Яндекса
+
+// Инициализация SDK Яндекс Игр
+YaGames.init().then(ysdk => {
+    console.log('Yandex SDK initialized');
+    ys = ysdk;
+
+    // Скрываем экран загрузки и показываем главное меню
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('menu-screen').style.display = 'flex';
+    
+}).catch(err => {
+    console.error('Ошибка инициализации Yandex SDK:', err);
+    // Даже если ошибка, все равно показываем игру, чтобы она работала локально
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('menu-screen').style.display = 'flex';
+});
+
+function showFullscreenAd() {
+    if (ys) {
+        ys.adv.showFullscreenAdv({
+            callbacks: {
+                onClose: function(wasShown) {
+                    console.log('Реклама закрыта');
+                },
+                onError: function(error) {
+                    console.log('Ошибка рекламы:', error);
+                }
+            }
+        });
+    }
+}
+
+
 // ============================================================================
 //  НАСТРОЙКИ ИГРЫ 
 // ============================================================================
+
 
 //  НАСТРОЙКИ МИРА
 const WORLD_SHAPE = 'circle';           // ФОРМА ГРАНИЦЫ: 'circle' (круг) или 'rect' (квадрат).
@@ -72,13 +107,13 @@ const BUFF_FREEZE_SLOW_FACTOR = 0.2;    // КОЭФФИЦИЕНТ ЗАМЕДЛЕ
 //  НАСТРОЙКИ КАСТОМНЫХ СКИНОВ (PNG)
 // ============================================================================
 const CUSTOM_SKIN_CONFIG = {
-    segments: 2000,                      // Количество сегментов для плавного движения (база)
-    spacing: 0.1,                         // Расстояние между точками траектории
-    headSmooth: 1,                      // Плавность следования головы за мышью
-    headImageWidth: 130,                // Ширина головы в пикселях на исходном PNG (640x320)
-    headToBodyGap: 20,                  // Доп. расстояние между головой и первым сегментом тела
-    segmentOverlap: 20,                 // Перекрытие сегментов в ПИКСЕЛЯХ (не коэффициент!)
-    skinThickness: 130                  // ТОЛЩИНА (ВЫСОТА) СКИНА: Высота сегмента в пикселях
+    spacing: 5,              
+    headSmooth: 0.15,
+    headImageWidth: 130,
+    headToBodyGap: 20,
+    segmentOverlap: 20,
+    skinThickness: 130,
+    bodySlices: 200         
 };
 
 // ============================================================================
@@ -198,8 +233,12 @@ class Snake {
             this.customImage.src = skinData.imagePath;
             this.customImage.onload = () => {
                 this.customImageLoaded = true;
-                for (let i = 0; i < CUSTOM_SKIN_CONFIG.segments; i++) {
-                    this.customPoints.push({ x: x - i * CUSTOM_SKIN_CONFIG.spacing, y: y });
+                // Создаём customPoints с длиной this.length
+                for (let i = 0; i < this.length; i++) {
+                    this.customPoints.push({ 
+                        x: x - i * CUSTOM_SKIN_CONFIG.spacing, 
+                        y: y 
+                    });
                 }
             };
             this.customImage.onerror = () => {
@@ -211,16 +250,28 @@ class Snake {
         for (let i = 0; i < this.length; i++) this.body.push({ x, y });
     }
 
-    // 🔹 МЕТОД ДОБАВЛЕНИЯ ТОЧЕК ПРИ РОСТЕ — ПОСЛЕ headToBodyGap (индекс 2)
     addCustomPoints(count) {
-        if (!this.useCustomSkin || !this.customImageLoaded) return;
+        if (!this.useCustomSkin || !this.customImageLoaded || this.customPoints.length === 0) return;
         
-        // 🔹 Добавляем точки ПОСЛЕ headToBodyGap (индекс 2: после головы и первого сегмента)
-        const insertIndex = 2;
-        const referencePoint = this.customPoints[Math.min(insertIndex, this.customPoints.length - 1)];
+        const lastPoint = this.customPoints[this.customPoints.length - 1];
+        
+        let dirX = 0, dirY = 0;
+        if (this.customPoints.length > 1) {
+            const prevPoint = this.customPoints[this.customPoints.length - 2];
+            const dx = lastPoint.x - prevPoint.x;
+            const dy = lastPoint.y - prevPoint.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            dirX = dx / dist;
+            dirY = dy / dist;
+        } else {
+            dirX = Math.cos(this.angle + Math.PI);
+            dirY = Math.sin(this.angle + Math.PI);
+        }
         
         for (let i = 0; i < count; i++) {
-            this.customPoints.splice(insertIndex + i, 0, { x: referencePoint.x, y: referencePoint.y });
+            const newX = lastPoint.x + dirX * CUSTOM_SKIN_CONFIG.spacing * (i + 1);
+            const newY = lastPoint.y + dirY * CUSTOM_SKIN_CONFIG.spacing * (i + 1);
+            this.customPoints.push({ x: newX, y: newY });
         }
     }
 
@@ -248,18 +299,27 @@ class Snake {
 
         // Обновление точек для кастомного скина
         if (this.useCustomSkin && this.customImageLoaded && this.customPoints.length > 0) {
+            while (this.customPoints.length < this.length) {
+                const last = this.customPoints[this.customPoints.length - 1];
+                this.customPoints.push({ x: last.x, y: last.y });
+            }
+            while (this.customPoints.length > this.length) {
+                this.customPoints.pop();
+            }
+            
+            // Обновляем точку 0 (голова) — плавно следует за настоящей головой
             this.customPoints[0].x += (head.x - this.customPoints[0].x) * CUSTOM_SKIN_CONFIG.headSmooth;
             this.customPoints[0].y += (head.y - this.customPoints[0].y) * CUSTOM_SKIN_CONFIG.headSmooth;
 
-            //  Обновляем ВСЕ точки (динамическая длина)
+            // Обновляем остальные точки — физика цепочки
             for (let i = 1; i < this.customPoints.length; i++) {
                 const prev = this.customPoints[i - 1];
                 const curr = this.customPoints[i];
                 const dx = prev.x - curr.x;
                 const dy = prev.y - curr.y;
                 const angle = Math.atan2(dy, dx);
-                const currentSpacing = (i === 1) 
-                    ? CUSTOM_SKIN_CONFIG.spacing + CUSTOM_SKIN_CONFIG.headToBodyGap 
+                const currentSpacing = (i === 1)
+                    ? CUSTOM_SKIN_CONFIG.spacing + CUSTOM_SKIN_CONFIG.headToBodyGap
                     : CUSTOM_SKIN_CONFIG.spacing;
                 curr.x = prev.x - Math.cos(angle) * currentSpacing;
                 curr.y = prev.y - Math.sin(angle) * currentSpacing;
@@ -296,10 +356,7 @@ class Snake {
             const f = foods[i];
             if (Math.hypot(head.x - f.x, head.y - f.y) < this.radius + f.size) {
                 this.length += FOOD_GROWTH;
-                
-                //  ДОБАВЛЯЕМ ВИЗУАЛЬНЫЕ ТОЧКИ ПРИ РОСТЕ — ПОСЛЕ headToBodyGap
                 this.addCustomPoints(FOOD_GROWTH);
-                
                 foods.splice(i, 1);
                 foods.push(new Food());
             }
@@ -372,31 +429,29 @@ class Snake {
         ctx.shadowBlur = 0;
     }
     
-    // === ОТРИСОВКА КАСТОМНОГО СКИНА — ПРОПОРЦИОНАЛЬНОЕ МАСШТАБИРОВАНИЕ ===
     drawCustomSkin() {
         if (!this.customImage?.complete || this.customPoints.length === 0) return;
         
         const img = this.customImage;
         const headImgW = this.skinData.headImageWidth || CUSTOM_SKIN_CONFIG.headImageWidth;
         const bodyImgW = img.width - headImgW;
-        const bodySegments = CUSTOM_SKIN_CONFIG.segments - 1;
-        const segmentWidth = bodyImgW / bodySegments;
+
+        const totalBodySlices = CUSTOM_SKIN_CONFIG.bodySlices;
+        const segmentWidth = bodyImgW / totalBodySlices;
         const overlapPx = CUSTOM_SKIN_CONFIG.segmentOverlap;
         
-        //  ПРОПОРЦИОНАЛЬНОЕ МАСШТАБИРОВАНИЕ
         const targetHeight = CUSTOM_SKIN_CONFIG.skinThickness;
         const scale = targetHeight / img.height;
         
         const headDrawWidth = headImgW * scale;
         const bodyDrawWidth = (segmentWidth + overlapPx) * scale;
 
-        //  ИСПОЛЬЗУЕМ ДИНАМИЧЕСКУЮ ДЛИНУ customPoints
         for (let i = 0; i < this.customPoints.length; i++) {
             const p = this.customPoints[i];
             const sx = p.x - camera.x;
             const sy = p.y - camera.y;
             
-            if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) continue;
+            if (sx < -200 || sx > canvas.width + 200 || sy < -200 || sy > canvas.height + 200) continue;
             
             let angle;
             if (i === 0 && this.customPoints.length > 1) {
@@ -405,7 +460,7 @@ class Snake {
                 angle = Math.atan2(p.y - this.customPoints[i-1].y, p.x - this.customPoints[i-1].x);
             } else if (i > 0 && i < this.customPoints.length - 1) {
                 angle = Math.atan2(
-                    this.customPoints[i+1].y - this.customPoints[i-1].y, 
+                    this.customPoints[i+1].y - this.customPoints[i-1].y,
                     this.customPoints[i+1].x - this.customPoints[i-1].x
                 );
             } else {
@@ -423,7 +478,7 @@ class Snake {
                     -headDrawWidth / 2, -targetHeight / 2, headDrawWidth, targetHeight
                 );
             } else {
-                const sliceIdx = (i - 1) % bodySegments; // Зацикливаем слайсы тела
+                const sliceIdx = (i - 1) % totalBodySlices;
                 const srcW = segmentWidth + overlapPx;
                 ctx.drawImage(
                     img,
@@ -539,7 +594,7 @@ function activateBuff(name) {
     switch(name) {
         case 'magnet': activateMagnet(now); showNotification('🧲 Магнит активирован!', 'magnet'); break;
         case 'shield': activateShield(now); showNotification('🛡️ Щит активирован!', 'shield'); break;
-        case 'speed':  activateSpeed(now); showNotification('⚡ Ускорение активировано!', 'speed'); break;
+        case 'speed':  activateSpeed(now);  showNotification('⚡ Ускорение активировано!', 'speed'); break;
         case 'freeze': activateFreeze(now); showNotification('❄️ Боты заморожены!', 'freeze'); break;
     }
     
@@ -569,7 +624,7 @@ function applyMagnetEffect() {
             const newDist = Math.hypot(head.x - food.x, head.y - food.y);
             if (newDist < player.radius + food.size + 10) {
                 player.length += FOOD_GROWTH;
-                player.addCustomPoints(FOOD_GROWTH); 
+                player.addCustomPoints(FOOD_GROWTH);
                 foods.splice(i, 1);
                 foods.push(new Food());
             }
@@ -716,7 +771,7 @@ function updateBuffsInLoop(dtMultiplier) {
 //  СБРОС ПРИ НОВОЙ ИГРЕ
 // ============================================================================
 function resetBuffs() {
-    Object.values(playerBuffs).forEach(b => { 
+    Object.values(playerBuffs).forEach(b => {
         b.ready = true; b.active = false; b.lastUsed = 0; b.endTime = 0;
         if (b.rafId) { cancelAnimationFrame(b.rafId); b.rafId = null; }
     });
@@ -819,7 +874,7 @@ function resizeCanvas() {
     canvas.height = window.innerHeight;
 }
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas(); 
+resizeCanvas();
 
 window.addEventListener('mousemove', e => { if (currentScreen === 'game') { mouse.x = e.clientX; mouse.y = e.clientY; } });
 window.addEventListener('touchmove', e => { if (currentScreen === 'game' && e.touches[0]) { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; e.preventDefault(); } }, { passive: false });
