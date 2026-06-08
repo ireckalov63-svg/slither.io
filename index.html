@@ -2,19 +2,36 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <title>Яндекс Игра</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Название вашей игры</title>
+    
+    <!-- Оптимизация -->
+    <link rel="preconnect" href="https://yandex.ru">
+    <link rel="preconnect" href="https://yandex.net">
+
+    <!-- Иконка -->
+    <link rel="icon" type="image/png" href="icon.png">
+
     <link rel="stylesheet" href="style.css">
+
+    <!-- Подключение SDK Яндекс Игр -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
 </head>
 <body>
 
+  <!-- Экран загрузки -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-text">Загрузка...</div>
+  </div>
+
   <!-- Главное меню -->
-  <div class="menu-screen">
+  <div class="menu-screen" id="menu-screen" style="display: none;">
     <button class="menu-play">Играть</button>
     <button class="menu-skins">Скины</button>
   </div>
 
   <!-- Экран скинов -->
-  <div class="skins-screen">
+  <div class="skins-screen" id="skins-screen" style="display: none;">
     <button class="skins-arrow-left">←</button>
     <div class="skins-preview"></div>
     <button class="skins-arrow-right">→</button>
@@ -22,7 +39,7 @@
   </div>
 
   <!-- Экран после смерти -->
-  <div class="gameover-screen"> 
+  <div class="gameover-screen" id="gameover-screen" style="display: none;"> 
     <h2>💀 Игра окончена!</h2>
     <p>Ваша длина: <span class="go-length">0</span></p>
     <p>🏆 Рекорд: <span class="go-best">0</span></p>
@@ -30,13 +47,11 @@
     <button class="menu-skins">В меню</button>
   </div>
 
-  
-
   <!-- Контейнер для уведомлений о баффах -->
   <div id="buff-notifications" class="buff-notifications"></div>
 
   <!-- Игровое поле -->
-  <div class="game-screen">
+  <div class="game-screen" id="game-screen" style="display: none;">
     <canvas id="game-canvas"></canvas>
 
     <!-- Баффы -->
@@ -68,6 +83,6 @@
     </div>
   </div>
 
-  <script src="./script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
