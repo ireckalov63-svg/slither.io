@@ -314,6 +314,22 @@ html, body {
   animation: cooldown-spin 1.5s linear infinite;
 }
 
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    color: white;
+    font-family: sans-serif;
+    font-size: 24px;
+}
+
 @keyframes cooldown-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -374,8 +390,6 @@ html, body {
 }
 
 /* Уведомление о баффах */
-
-/* Контейнер уведомлений */
 .buff-notifications {
     position: fixed;
     top: 20px;
@@ -388,7 +402,6 @@ html, body {
     max-width: 280px;
 }
 
-/* Отдельное уведомление */
 .buff-notification {
     background: rgba(26, 26, 46, 0.95);
     border: 2px solid #ffd43b;
@@ -405,14 +418,12 @@ html, body {
     line-height: 1.3;
 }
 
-/* Цвета для разных типов уведомлений */
 .buff-notification.magnet { border-color: #ffd43b; box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(255, 212, 59, 0.3); }
 .buff-notification.shield { border-color: #4ecdc4; box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(78, 205, 196, 0.3); }
 .buff-notification.speed  { border-color: #ff6b6b; box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(255, 107, 107, 0.3); }
 .buff-notification.freeze { border-color: #a5d8ff; box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(165, 216, 255, 0.3); }
 .buff-notification.cooldown { border-color: #ff6b6b; }
 
-/* Анимации */
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
@@ -424,7 +435,6 @@ html, body {
 }
 
 /* Адаптация экрана */
-
 /* Планшеты */
 @media (max-width: 768px) {
   .buffs-container { bottom: 20px; gap: 10px; padding: 8px 15px; }
